@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Quilt Designer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">◀</button>
+            
+            <!-- Mini toolbar (visible when collapsed) -->
+            <div class="mini-toolbar">
+                <button class="btn-mini active" data-tool="paint" title="Paint">🎨</button>
+                <button class="btn-mini" data-tool="swap" title="Swap">🔄</button>
+                <button class="btn-mini" data-tool="anchor" title="Anchor">📍</button>
+                <button class="btn-mini" data-tool="lock" title="Lock">🔒</button>
+                <button class="btn-mini" data-tool="erase" title="Erase">🧹</button>
+                <div class="mini-divider"></div>
+                <div class="mini-color-selector" id="mini-color-selector">
+                    <!-- Colors appear here -->
+                </div>
+                <div class="mini-divider"></div>
+                <button class="btn-mini" id="mini-undo" title="Undo">↶</button>
+                <button class="btn-mini" id="mini-redo" title="Redo">↷</button>
+                <div class="mini-brush-selector" id="mini-brush-selector">
+                    <div class="mini-label">Brush size</div>
+                    <button class="btn-mini-brush active" data-size="1">1</button>
+                    <button class="btn-mini-brush" data-size="2">2</button>
+                    <button class="btn-mini-brush" data-size="3">3</button>
+                    <button class="btn-mini-brush" data-size="4">4</button>
+                    <button class="btn-mini-brush" data-size="5">5</button>
+                </div>
+            </div>
+            
+            <h1 class="app-title">Hex Quilt Designer</h1>
+            
+            <!-- Grid Setup -->
+            <section class="panel">
+                <h2>Grid Setup</h2>
+                <div class="input-row">
+                    <label>Hex size</label>
+                    <input type="number" id="hex-real-size" value="2" min="0.5" max="10" step="0.25">
+                    <select id="unit-select">
+                        <option value="in">in</option>
+                        <option value="cm">cm</option>
+                    </select>
+                </div>
+                <div class="input-row">
+                    <label>Width</label>
+                    <input type="number" id="quilt-width" value="30" min="1" max="200" step="1">
+                    <span id="unit-width">in</span>
+                </div>
+                <div class="input-row">
+                    <label>Height</label>
+                    <input type="number" id="quilt-height" value="40" min="1" max="200" step="1">
+                    <span id="unit-height">in</span>
+                </div>
+                <button id="generate-grid" class="btn btn-primary">Generate Grid</button>
+                <div class="grid-info" id="grid-info">
+                    <!-- Auto-calculated grid info appears here -->
+                </div>
+            </section>
+
+            <!-- Color Palette -->
+            <section class="panel">
+                <h2>Color Palette</h2>
+                <div class="color-add">
+                    <label class="color-add-label">🎨</label>
+                    <input type="color" id="new-color" value="#d97756" title="Pick a color">
+                    <div class="color-add-qty-group">
+                        <input type="number" id="new-color-count" placeholder="20" min="1" value="20" title="Number of hexagons available">
+                        <span class="color-add-label">⬡</span>
+                    </div>
+                    <button id="add-color" class="btn btn-small">Add</button>
+                </div>
+                <button id="pick-from-image" class="btn btn-small btn-secondary" style="width: 100%; margin-top: 0.5rem;">🖼️ Pick from Image</button>
+                <div class="palette-hint">💡 Click a color to select it for paint/anchor</div>
+                <div id="color-list" class="color-list">
+                    <!-- Colors added dynamically as hex swatches -->
+                </div>
+                
+                <!-- Color Editor (appears when color is clicked) -->
+                <div id="color-editor" class="color-editor">
+                    <div class="color-editor-header">
+                        <span class="color-editor-title">
+                            <span class="color-editor-swatch" id="editor-swatch"></span>
+                            Color #<span id="editor-color-id">1</span>
+                        </span>
+                        <button class="color-editor-close" id="editor-close">×</button>
+                    </div>
+                    <div class="color-editor-row">
+                        <label>Quantity:</label>
+                        <input type="number" id="editor-qty" min="0" value="20">
+                        <button id="editor-update" class="btn btn-small btn-primary">Update</button>
+                    </div>
+                </div>
+                
+                <div class="color-stats">
+                    <span id="total-available">0</span> available · 
+                    <span id="total-placed">0</span> placed · 
+                    <span id="total-cells">0</span> cells
+                </div>
+            </section>
+
+            <!-- Display Options -->
+            <section class="panel">
+                <h2>Display</h2>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-numbers">
+                    Show color numbers
+                </label>
+            </section>
+
+            <!-- Tools -->
+            <section class="panel">
+                <h2>Tools</h2>
+                <div class="tool-buttons">
+                    <button id="tool-paint" class="btn btn-tool active" data-tool="paint">🎨 Paint</button>
+                    <button id="tool-swap" class="btn btn-tool" data-tool="swap">🔄 Swap</button>
+                    <button id="tool-anchor" class="btn btn-tool" data-tool="anchor">📍 Anchor</button>
+                </div>
+                <div class="tool-buttons">
+                    <button id="tool-lock" class="btn btn-tool" data-tool="lock">🔒 Lock</button>
+                    <button id="tool-erase" class="btn btn-tool" data-tool="erase">🧹 Erase</button>
+                </div>
+                <div class="input-row" style="margin-top: 0.5rem;">
+                    <label>Brush size</label>
+                    <input type="range" id="brush-size-slider" min="1" max="5" value="1" step="1">
+                    <input type="number" id="brush-size-input" min="1" max="5" value="1" style="width: 3rem;">
+                </div>
+                <div id="tool-hint" class="tool-hint">
+                    💡 Click a hex to paint the selected color
+                </div>
+                <button id="generate-gradient" class="btn btn-secondary">Generate Gradient</button>
+                <button id="clear-anchors" class="btn btn-small">Clear Anchors</button>
+                <button id="clear-grid" class="btn btn-small btn-danger">Clear All</button>
+            </section>
+
+            <!-- Undo/Redo -->
+            <section class="panel">
+                <h2>History</h2>
+                <div class="history-buttons">
+                    <button id="undo" class="btn btn-small" disabled>↶ Undo</button>
+                    <button id="redo" class="btn btn-small" disabled>↷ Redo</button>
+                </div>
+            </section>
+
+            <!-- Export -->
+            <section class="panel">
+                <h2>Export</h2>
+                <div class="export-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="export-show-grid" checked>
+                        Show grid lines
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="export-show-numbers">
+                        Show numbers
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="export-hide-colors">
+                        Hide colors (outline only)
+                    </label>
+                </div>
+                <button id="export-png" class="btn btn-secondary">Download PNG</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button id="export-json" class="btn btn-small">Export Design</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                    <button id="import-json" class="btn btn-small">Import Design</button>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button id="save-state" class="btn btn-small">Save to Browser</button>
+                    <button id="load-state" class="btn btn-small">Load Saved</button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Sidebar resize handle -->
+        <div class="sidebar-resize-handle" id="sidebar-resize-handle"></div>
+
+        <!-- Main Canvas Area -->
+        <main class="canvas-area">
+            <div class="canvas-toolbar">
+                <div class="zoom-controls">
+                    <button class="btn-zoom" id="zoom-out" title="Zoom out">−</button>
+                    <span class="zoom-level" id="zoom-level">100%</span>
+                    <button class="btn-zoom" id="zoom-in" title="Zoom in">+</button>
+                    <button class="btn-zoom" id="zoom-reset" title="Reset zoom">⟲</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper" id="canvas-wrapper">
+                <svg id="hex-grid" class="hex-grid">
+                    <!-- Hexagons rendered here -->
+                </svg>
+            </div>
+            <div class="status-bar">
+                <span id="status-message">Set dimensions and generate a grid to begin</span>
+            </div>
+        </main>
+    </div>
+
+    <!-- Image Color Picker Modal -->
+    <div id="image-picker-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Pick Colors from Image</h2>
+                <button class="modal-close" id="image-picker-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="image-upload-area" id="image-upload-area">
+                    <input type="file" id="image-picker-file" accept="image/*" style="display: none;">
+                    <button id="image-upload-btn" class="btn btn-secondary">Upload Image</button>
+                    <p class="upload-hint">Click to upload an image, then click on it to pick colors</p>
+                </div>
+                <div class="image-canvas-container" id="image-canvas-container" style="display: none;">
+                    <canvas id="image-picker-canvas"></canvas>
+                </div>
+                <div class="picked-colors-container">
+                    <div class="picked-colors-header">
+                        <span>Picked Colors (<span id="picked-count">0</span>)</span>
+                        <div class="picked-controls">
+                            <button id="pick-undo" class="btn btn-small" disabled>↶</button>
+                            <button id="pick-redo" class="btn btn-small" disabled>↷</button>
+                        </div>
+                    </div>
+                    <div id="picked-colors-list" class="picked-colors-list">
+                        <!-- Picked colors appear here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="image-picker-cancel" class="btn btn-small">Cancel</button>
+                <button id="image-picker-ok" class="btn btn-primary">Add Colors to Palette</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
