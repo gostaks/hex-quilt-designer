@@ -1321,32 +1321,199 @@ function exportPNG() {
     const svg = document.getElementById('hex-grid');
     const svgClone = svg.cloneNode(true);
     
-    // Apply export options to the clone
     const hexes = svgClone.querySelectorAll('.hex');
-    const numbers = svgClone.querySelectorAll('.hex-number');
     const anchorMarkers = svgClone.querySelectorAll('.anchor-marker');
+    const lockIndicators = svgClone.querySelectorAll('.lock-indicator');
     
+    // Apply hex styles
     hexes.forEach(hex => {
         if (hideColors) {
-            // Show outline only
+            // White fill
             hex.setAttribute('fill', '#ffffff');
-            hex.setAttribute('stroke-width', '2');
+        } else {
+            // Keep the color fill
+            const fill = hex.getAttribute('fill');
+            if (fill && fill !== 'none') {
+                hex.setAttribute('fill', fill);
+            }
         }
-        if (!showGrid) {
-            hex.setAttribute('stroke', 'none');
-        }
+        
+        // Remove stroke from hexes (grid lines will be drawn separately if needed)
+        hex.setAttribute('stroke', 'none');
     });
     
-    // Handle numbers: show if export option is on, or if currently showing and not hiding colors
-    const shouldShowNumbers = showNumbers || (state.showNumbers && !hideColors);
-    numbers.forEach(num => {
-        if (!shouldShowNumbers) {
-            num.remove();
+    // Add grid lines as separate elements in gaps between hexes
+    if (showGrid) {
+        const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        gridGroup.setAttribute('id', 'export-grid-lines');
+        
+        // Helper to check if a neighbor exists
+        const hasNeighbor = (row, col) => {
+            return row >= 0 && row < state.rows && col >= 0 && col < state.cols;
+        };
+        
+        for (let row = 0; row < state.rows; row++) {
+            for (let col = 0; col < state.cols; col++) {
+                const { x, y } = hexToPixel(col, row, state.hexSize);
+                const width = Math.sqrt(3) * state.hexSize;
+                const height = state.hexSize;
+                
+                // Get neighbor positions based on odd/even row
+                const isOddRow = row % 2 === 1;
+                const neighbors = {
+                    right: [row, col + 1],
+                    left: [row, col - 1],
+                    topRight: [row - 1, isOddRow ? col + 1 : col],
+                    topLeft: [row - 1, isOddRow ? col : col - 1],
+                    bottomRight: [row + 1, isOddRow ? col + 1 : col],
+                    bottomLeft: [row + 1, isOddRow ? col : col - 1]
+                };
+                
+                // Draw each edge only if there's no neighbor on that side (exterior)
+                // OR if we're using the standard interior drawing pattern
+                
+                // Top-right edge
+                if (!hasNeighbor(...neighbors.topRight)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x);
+                    line.setAttribute('y1', y - height);
+                    line.setAttribute('x2', x + width / 2);
+                    line.setAttribute('y2', y - height / 2);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Right edge
+                if (!hasNeighbor(...neighbors.right) || col < state.cols - 1) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x + width / 2);
+                    line.setAttribute('y1', y - height / 2);
+                    line.setAttribute('x2', x + width / 2);
+                    line.setAttribute('y2', y + height / 2);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Bottom-right edge
+                if (!hasNeighbor(...neighbors.bottomRight)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x + width / 2);
+                    line.setAttribute('y1', y + height / 2);
+                    line.setAttribute('x2', x);
+                    line.setAttribute('y2', y + height);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Bottom-left edge
+                if (!hasNeighbor(...neighbors.bottomLeft)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x);
+                    line.setAttribute('y1', y + height);
+                    line.setAttribute('x2', x - width / 2);
+                    line.setAttribute('y2', y + height / 2);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Left edge
+                if (!hasNeighbor(...neighbors.left)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x - width / 2);
+                    line.setAttribute('y1', y + height / 2);
+                    line.setAttribute('x2', x - width / 2);
+                    line.setAttribute('y2', y - height / 2);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Top-left edge
+                if (!hasNeighbor(...neighbors.topLeft)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x - width / 2);
+                    line.setAttribute('y1', y - height / 2);
+                    line.setAttribute('x2', x);
+                    line.setAttribute('y2', y - height);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                // Interior lines: bottom-right and bottom-left (to avoid duplicates)
+                if (hasNeighbor(...neighbors.bottomRight)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x + width / 2);
+                    line.setAttribute('y1', y + height / 2);
+                    line.setAttribute('x2', x);
+                    line.setAttribute('y2', y + height);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+                
+                if (hasNeighbor(...neighbors.bottomLeft)) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x);
+                    line.setAttribute('y1', y + height);
+                    line.setAttribute('x2', x - width / 2);
+                    line.setAttribute('y2', y + height / 2);
+                    line.setAttribute('stroke', '#000000');
+                    line.setAttribute('stroke-width', '1');
+                    gridGroup.appendChild(line);
+                }
+            }
         }
-    });
+        
+        svgClone.appendChild(gridGroup);
+    }
     
-    // Remove anchor markers from export
+    // Handle numbers - create them if they don't exist
+    if (showNumbers) {
+        // First, remove any existing numbers
+        svgClone.querySelectorAll('.hex-number').forEach(num => num.remove());
+        
+        // Generate numbers for all colored cells
+        for (let row = 0; row < state.rows; row++) {
+            for (let col = 0; col < state.cols; col++) {
+                const cell = getCell(row, col);
+                if (!cell || !cell.colorId) continue;
+                
+                const { x, y } = hexToPixel(col, row, state.hexSize);
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('font-family', 'JetBrains Mono, SF Mono, monospace');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('font-weight', '500');
+                text.setAttribute('pointer-events', 'none');
+                
+                // Set text color based on background
+                if (hideColors) {
+                    text.setAttribute('fill', '#000000');
+                } else {
+                    const textColor = isLightColor(cell.color) ? '#4a4540' : '#ffffff';
+                    text.setAttribute('fill', textColor);
+                }
+                
+                text.textContent = cell.colorId;
+                svgClone.appendChild(text);
+            }
+        }
+    } else {
+        // Remove all numbers
+        svgClone.querySelectorAll('.hex-number').forEach(num => num.remove());
+    }
+    
+    // Remove anchor markers and lock indicators from export
     anchorMarkers.forEach(marker => marker.remove());
+    lockIndicators.forEach(indicator => indicator.remove());
     
     // Create canvas
     const canvas = document.createElement('canvas');
