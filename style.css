@@ -318,6 +318,10 @@ body {
     margin-right: 0.5rem;
 }
 
+.input-row label input[type="checkbox"] {
+    margin-right: 0.25rem;
+}
+
 .input-row select {
     padding: 0.4rem 0.5rem;
     border: 1px solid var(--border);

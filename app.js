@@ -59,6 +59,10 @@ const state = {
         imageData: null
     },
     
+    // Gradient options
+    gradientDither: false,
+    ditherIntensity: 5,
+    
     // Display options
     showNumbers: false,
     
@@ -982,7 +986,30 @@ function generateGradient() {
                 colorWeights.push({ color: colorObj.color, weight });
             }
             
-            const idealColor = blendColors(colorWeights);
+            let idealColor = blendColors(colorWeights);
+            
+            // Apply dither if enabled
+            if (state.gradientDither && idealColor) {
+                const rgb = hexToRgb(idealColor);
+                if (rgb) {
+                    const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
+                    
+                    // Add random noise to LAB values (perceptually uniform)
+                    // Scale noise by dither intensity
+                    const noise = state.ditherIntensity;
+                    lab.L += (Math.random() - 0.5) * noise * 2;
+                    lab.a += (Math.random() - 0.5) * noise;
+                    lab.b += (Math.random() - 0.5) * noise;
+                    
+                    // Clamp LAB values to valid ranges
+                    lab.L = Math.max(0, Math.min(100, lab.L));
+                    // a and b typically range -128 to 127, but we don't strictly clamp
+                    
+                    const ditheredRgb = labToRgb(lab.L, lab.a, lab.b);
+                    idealColor = rgbToHex(ditheredRgb.r, ditheredRgb.g, ditheredRgb.b);
+                }
+            }
+            
             idealColors.push({ row, col, idx, idealColor });
         }
     }
@@ -2084,6 +2111,26 @@ function init() {
     document.getElementById('show-numbers').addEventListener('change', (e) => {
         state.showNumbers = e.target.checked;
         renderGrid();
+    });
+    
+    // Gradient dither
+    document.getElementById('gradient-dither').addEventListener('change', (e) => {
+        state.gradientDither = e.target.checked;
+        document.getElementById('dither-intensity').disabled = !e.target.checked;
+        document.getElementById('dither-intensity-input').disabled = !e.target.checked;
+    });
+    
+    document.getElementById('dither-intensity').addEventListener('input', (e) => {
+        state.ditherIntensity = parseInt(e.target.value);
+        document.getElementById('dither-intensity-input').value = state.ditherIntensity;
+    });
+    
+    document.getElementById('dither-intensity-input').addEventListener('input', (e) => {
+        let value = parseInt(e.target.value);
+        if (isNaN(value)) return;
+        value = Math.max(0, Math.min(20, value));
+        state.ditherIntensity = value;
+        document.getElementById('dither-intensity').value = state.ditherIntensity;
     });
     
     // Brush size - slider
