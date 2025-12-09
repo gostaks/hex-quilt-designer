@@ -1321,6 +1321,9 @@ function exportPNG() {
     const svg = document.getElementById('hex-grid');
     const svgClone = svg.cloneNode(true);
     
+    // Ensure proper SVG namespace (Firefox requirement)
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    
     const hexes = svgClone.querySelectorAll('.hex');
     const anchorMarkers = svgClone.querySelectorAll('.anchor-marker');
     const lockIndicators = svgClone.querySelectorAll('.lock-indicator');
